@@ -12,7 +12,7 @@ from typing import List, Dict
 # ---------------------------
 SERIES = {
     # series_id: friendly_name
-    "CES0000000001": "Total Nonfarm Payrolls",     # CES total nonfarm - verify if you prefer other CES series
+    "CES0000000001": "Total Nonfarm Payrolls",    
     "LNS14000000": "Unemployment Rate",           # Unemployment rate (U-3)
     "LNS11300000": "Labor Force Participation Rate",
     "CES0500000003": "Avg Hourly Earnings, Total Private",
