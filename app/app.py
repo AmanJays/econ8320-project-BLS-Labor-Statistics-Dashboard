@@ -3,7 +3,6 @@ import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
 
 DATA_FILE = "data/bls_data.csv"
 
