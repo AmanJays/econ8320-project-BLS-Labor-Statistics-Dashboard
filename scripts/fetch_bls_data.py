@@ -5,7 +5,7 @@ import json
 import requests
 import pandas as pd
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 # ---------------------------
 # CONFIG: change these if desired
@@ -28,7 +28,7 @@ API_ENV_VAR = "BLS_API_KEY"
 # ---------------------------
 
 class BLSFetcher:
-    def __init__(self, api_key: str, series_ids: List[str], start_year: int = None, end_year: int = None):
+    def __init__(self, api_key: str, series_ids: List[str], start_year: Optional[int] = None, end_year: Optional[int] = None):
         self.api_key = api_key
         self.series_ids = series_ids
         now = datetime.utcnow()
@@ -69,7 +69,6 @@ class BLSFetcher:
         series_list = json_resp.get("Results", {}).get("series", [])
         for s in series_list:
             sid = s.get("seriesID")
-            title = s.get("catalog", {}).get("survey", "")  # fallback if no catalog
             # If the API includes 'series' -> 'catalog' structure not always present; use provided mapping if available.
             # The data array contains year & period & value
             for item in s.get("data", []):
