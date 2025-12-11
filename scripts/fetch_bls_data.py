@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""
-scripts/fetch_bls_data.py
-
-Course-style BLS data fetcher:
-- Uses BLS Public API v2
-- Fetches a list of series for a configurable range of years
-- Writes/updates a long-format CSV at data/bls_data.csv
-- Designed to be run monthly (e.g., from GitHub Actions)
-"""
-
 import os
 import sys
 import json
