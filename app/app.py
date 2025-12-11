@@ -67,3 +67,6 @@ with st.expander("Show underlying data"):
     st.dataframe(plot_df.sort_values(["series_id","date"]).reset_index(drop=True), use_container_width=True)
 
 st.caption("This dashboard reads the processed CSV (data/bls_data.csv). The dataset is updated by the fetch script run monthly via GitHub Actions.")
+
+
+#streamlit run app/app.py
