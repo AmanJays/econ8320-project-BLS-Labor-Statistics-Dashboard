@@ -9,5 +9,4 @@ It is built with **Python**, **Streamlit**, and **Plotly**, and automatically fe
 
 You can try it live here:
 
-```text
-https://econ8320-project-bls-labor-statistics-dashboard-i42zumaice6k9p.streamlit.app/
+**[Click here to view the interactive dashboard](https://econ8320-project-bls-labor-statistics-dashboard-i42zumaice6k9p.streamlit.app/)**
