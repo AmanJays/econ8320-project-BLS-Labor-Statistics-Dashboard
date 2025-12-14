@@ -28,7 +28,6 @@ start_date, end_date = st.sidebar.slider(
 )
 start_date = start_date.replace(day=1)
 
-# Reset slider button
 if st.sidebar.button("🔄 Reset Timeframe"):
     start_date, end_date = min_date, max_date
 
@@ -46,6 +45,13 @@ df_plot['Inflation'] = (df_plot["CPI"] - start_row["CPI"]) / start_row["CPI"] * 
 df_plot['Wage Growth'] = (df_plot["Weekly Income"] - start_row["Weekly Income"]) / start_row["Weekly Income"] * 100
 df_plot['Adj Hourly Earnings'] = round(df_plot["Hourly Earnings"] / df_plot["CPI"] * start_row["CPI"], 2)
 
+# --- Helper Function: Trend Arrows ---
+def format_metric(value, delta):
+    """Return formatted value with colored arrow"""
+    arrow = "🔼" if delta > 0 else ("🔽" if delta < 0 else "")
+    color = "green" if delta > 0 else ("red" if delta < 0 else "normal")
+    return f"{value} {arrow}", color
+
 # --- Tabs ---
 tabs = st.tabs(["💼 Employment", "📈 Wage vs Inflation", "💵 Work Hours & Pay"])
 
@@ -55,13 +61,23 @@ with tabs[0]:
     emp_growth = end_row['Employment Level'] - start_row['Employment Level']
     unemp_change = end_row['Unemployment Rate'] - start_row['Unemployment Rate']
 
+    emp_val, emp_color = format_metric(f"{round(end_row['Employment Level']/1000,1):,}M", emp_growth)
+    unemp_val, unemp_color = format_metric(f"{end_row['Unemployment Rate']}%", unemp_change)
+
     col1, col2 = st.columns(2)
-    col1.metric("Employment Level", f"{round(end_row['Employment Level']/1000,1):,}M", f"{emp_growth:,}k")
-    col2.metric("Unemployment Rate", f"{end_row['Unemployment Rate']}%", f"{unemp_change:+.2f}%")
+    col1.metric("Employment Level", emp_val, delta_color=emp_color)
+    col2.metric("Unemployment Rate", unemp_val, delta_color=unemp_color)
+
+    # Selectable metrics
+    selection = st.multiselect("Select metrics", ["Employment Level", "Unemployment Rate"],
+                               default=["Employment Level", "Unemployment Rate"])
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Employment Level'], name='Employment Level', line=dict(color='blue')))
-    fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Unemployment Rate'], name='Unemployment Rate', line=dict(color='red'), yaxis='y2'))
+    if "Employment Level" in selection:
+        fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Employment Level'], name='Employment Level', line=dict(color='blue')))
+    if "Unemployment Rate" in selection:
+        fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Unemployment Rate'], name='Unemployment Rate', line=dict(color='red'), yaxis='y2'))
+
     fig.update_layout(
         yaxis=dict(title="Employment Level (000s)"),
         yaxis2=dict(title="Unemployment Rate (%)", overlaying="y", side="right", showgrid=False),
@@ -70,37 +86,73 @@ with tabs[0]:
     )
     st.plotly_chart(fig, use_container_width=True)
 
+    with st.expander("📊 View Raw Data"):
+        st.dataframe(df_plot[['Date', 'Employment Level', 'Unemployment Rate']].style.format({
+            'Date': "{:%b %Y}",
+            'Employment Level': "{:,.0f}",
+            'Unemployment Rate': "{:.1f}%"
+        }))
+
 # --- Tab 2: Wage vs Inflation ---
 with tabs[1]:
     st.subheader(f"📈 Wage Growth vs Inflation ({start_date:%b %Y} – {end_date:%b %Y})")
-    wage_growth = round((end_row['Weekly Income'] - start_row['Weekly Income']) / start_row['Weekly Income'] * 100, 1)
-    cpi_change = round((end_row['CPI'] - start_row['CPI']) / start_row['CPI'] * 100, 1)
+    wage_growth_val = round((end_row['Weekly Income'] - start_row['Weekly Income']) / start_row['Weekly Income'] * 100, 1)
+    cpi_change_val = round((end_row['CPI'] - start_row['CPI']) / start_row['CPI'] * 100, 1)
+
+    wage_val, wage_color = format_metric(f"${end_row['Weekly Income']:,}", wage_growth_val)
+    cpi_val, cpi_color = format_metric(f"{end_row['CPI']}", cpi_change_val)
 
     col1, col2 = st.columns(2)
-    col1.metric("Weekly Income", f"${end_row['Weekly Income']:,}", f"{wage_growth:+.1f}%")
-    col2.metric("CPI", f"{end_row['CPI']}", f"{cpi_change:+.1f}%")
+    col1.metric("Weekly Income", wage_val, delta_color=wage_color)
+    col2.metric("CPI", cpi_val, delta_color=cpi_color)
+
+    # Selectable metrics
+    selection = st.multiselect("Select metrics", ["Wage Growth", "Inflation"], default=["Wage Growth", "Inflation"])
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Wage Growth'], name='Wage Growth', line=dict(color='green')))
-    fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Inflation'], name='Inflation', line=dict(color='orange')))
+    if "Wage Growth" in selection:
+        fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Wage Growth'], name='Wage Growth', line=dict(color='green'), hovertemplate='%{y:.1f}%'))
+    if "Inflation" in selection:
+        fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Inflation'], name='Inflation', line=dict(color='orange'), hovertemplate='%{y:.1f}%'))
+
     fig.update_layout(yaxis=dict(title="Cumulative Growth (%)"), legend=dict(orientation="h", y=1.02, x=1, xanchor='right'), hovermode="x unified")
     st.plotly_chart(fig, use_container_width=True)
+
+    with st.expander("📊 View Raw Data"):
+        st.dataframe(df_plot[['Date', 'Weekly Income', 'Wage Growth', 'CPI', 'Inflation']].style.format({
+            'Date': "{:%b %Y}",
+            'Weekly Income': "${:,.1f}",
+            'Wage Growth': "{:.1f}%",
+            'CPI': "{:.1f}",
+            'Inflation': "{:.1f}%"
+        }))
 
 # --- Tab 3: Work Hours & Pay ---
 with tabs[2]:
     st.subheader(f"💵 Work Hours & Pay ({start_date:%b %Y} – {end_date:%b %Y})")
-    hr_growth = round((end_row["Hourly Earnings"] - start_row["Hourly Earnings"]) / start_row["Hourly Earnings"] * 100 , 1)
-    adjhr = round(end_row["Hourly Earnings"] / end_row["CPI"] * start_row["CPI"], 2)
-    adjhr_growth = round((adjhr - start_row["Hourly Earnings"]) / start_row["Hourly Earnings"] * 100, 1)
+    hr_growth_val = round((end_row["Hourly Earnings"] - start_row["Hourly Earnings"]) / start_row["Hourly Earnings"] * 100 , 1)
+    adjhr_val = round(end_row["Hourly Earnings"] / end_row["CPI"] * start_row["CPI"], 2)
+    adjhr_growth_val = round((adjhr_val - start_row["Hourly Earnings"]) / start_row["Hourly Earnings"] * 100, 1)
+
+    hr_val, hr_color = format_metric(f"${end_row['Hourly Earnings']:,}", hr_growth_val)
+    adj_val, adj_color = format_metric(f"${adjhr_val:,}", adjhr_growth_val)
 
     col1, col2 = st.columns(2)
-    col1.metric("Hourly Earnings", f"${end_row['Hourly Earnings']:,}", f"{hr_growth:+.1f}%")
-    col2.metric("Adj. Hourly Earnings", f"${adjhr:,}", f"{adjhr_growth:+.1f}%")
+    col1.metric("Hourly Earnings", hr_val, delta_color=hr_color)
+    col2.metric("Adj. Hourly Earnings", adj_val, delta_color=adj_color)
+
+    # Selectable metrics
+    selection = st.multiselect("Select metrics", ["Hourly Earnings", "Adj. Hourly Earnings", "Hours Worked"],
+                               default=["Hourly Earnings", "Adj. Hourly Earnings", "Hours Worked"])
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Hourly Earnings'], name='Hourly Earnings', line=dict(color='hotpink'), yaxis='y'))
-    fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Adj Hourly Earnings'], name='Adj Hourly Earnings', line=dict(color='purple'), yaxis='y'))
-    fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Hours Worked'], name='Hours Worked', line=dict(color='gold'), yaxis='y2'))
+    if "Hourly Earnings" in selection:
+        fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Hourly Earnings'], name='Hourly Earnings', line=dict(color='hotpink'), yaxis='y'))
+    if "Adj. Hourly Earnings" in selection:
+        fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Adj Hourly Earnings'], name='Adj. Hourly Earnings', line=dict(color='purple'), yaxis='y'))
+    if "Hours Worked" in selection:
+        fig.add_trace(go.Scatter(x=df_plot['Date'], y=df_plot['Hours Worked'], name='Hours Worked', line=dict(color='gold'), yaxis='y2'))
+
     fig.update_layout(
         yaxis=dict(title="Wage ($)"),
         yaxis2=dict(title="Weekly Hours", overlaying="y", side="right", showgrid=False),
@@ -108,3 +160,11 @@ with tabs[2]:
         hovermode="x unified"
     )
     st.plotly_chart(fig, use_container_width=True)
+
+    with st.expander("📊 View Raw Data"):
+        st.dataframe(df_plot[['Date', 'Hourly Earnings', 'Adj Hourly Earnings', 'Hours Worked']].style.format({
+            'Date': "{:%b %Y}",
+            'Hourly Earnings': "${:.1f}",
+            'Adj Hourly Earnings': "${:.1f}",
+            'Hours Worked': "{:.1f}"
+        }))
