@@ -2,7 +2,9 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
-# --- Page Setup ---
+# --------------------------------------------------
+# Page Setup
+# --------------------------------------------------
 st.set_page_config(
     page_title="U.S. Labor Market Dashboard",
     layout="wide"
@@ -18,7 +20,20 @@ st.markdown(
     """
 )
 
-# --- Load Data ---
+# --------------------------------------------------
+# Helper Function: Trend Emoji
+# --------------------------------------------------
+def trend_emoji(value):
+    if value > 0:
+        return "🔼"
+    elif value < 0:
+        return "🔽"
+    else:
+        return "➖"
+
+# --------------------------------------------------
+# Load Data
+# --------------------------------------------------
 @st.cache_data
 def load_data():
     df = pd.read_csv("data/labor_data.csv")
@@ -28,7 +43,9 @@ def load_data():
 
 df = load_data()
 
-# --- Sidebar: Year Selection ---
+# --------------------------------------------------
+# Sidebar: Year Selection
+# --------------------------------------------------
 st.sidebar.header("📅 Select Time Period")
 
 years = sorted(df["Year"].unique())
@@ -41,39 +58,49 @@ if start_year > end_year:
 
 df_plot = df.query("Year >= @start_year and Year <= @end_year").copy()
 
-# --- Manufacturing Share ---
+# --------------------------------------------------
+# Calculations
+# --------------------------------------------------
+# Manufacturing Share
 df_plot["Manufacturing Share (%)"] = (
     df_plot["Manufacturing Employment"]
     / df_plot["Total Nonfarm Payrolls"]
     * 100
 )
 
-# --- Calculations ---
+# Unemployment change
 start_unemp = df_plot.iloc[0]["Unemployment Rate"]
 end_unemp = df_plot.iloc[-1]["Unemployment Rate"]
 unemp_change = end_unemp - start_unemp
 
+# Manufacturing share change
 start_share = df_plot.iloc[0]["Manufacturing Share (%)"]
 end_share = df_plot.iloc[-1]["Manufacturing Share (%)"]
 share_change = end_share - start_share
 
-# --- Metrics ---
+# --------------------------------------------------
+# Metrics
+# --------------------------------------------------
 col1, col2 = st.columns(2)
 
 col1.metric(
     "Change in Unemployment Rate",
-    f"{unemp_change:+.2f} percentage points"
+    f"{unemp_change:+.2f} percentage points {trend_emoji(unemp_change)}"
 )
 
 col2.metric(
     "Change in Manufacturing Employment Share",
-    f"{share_change:+.2f} percentage points"
+    f"{share_change:+.2f} percentage points {trend_emoji(share_change)}"
 )
 
-# --- Tabs ---
+# --------------------------------------------------
+# Tabs
+# --------------------------------------------------
 tab1, tab2 = st.tabs(["📉 Unemployment Rate", "🏭 Manufacturing Share"])
 
-# --- Tab 1: Unemployment ---
+# --------------------------------------------------
+# Tab 1: Unemployment Rate
+# --------------------------------------------------
 with tab1:
     fig1 = go.Figure()
     fig1.add_trace(
@@ -93,7 +120,9 @@ with tab1:
 
     st.plotly_chart(fig1, use_container_width=True)
 
-# --- Tab 2: Manufacturing Share ---
+# --------------------------------------------------
+# Tab 2: Manufacturing Share
+# --------------------------------------------------
 with tab2:
     fig2 = go.Figure()
     fig2.add_trace(
@@ -113,8 +142,7 @@ with tab2:
 
     st.plotly_chart(fig2, use_container_width=True)
 
-    # --- Show the formula (work) ---
-    st.markdown("### 📐 How Manufacturing Share Is Calculated")
+    # Formula (work shown)
     st.latex(
         r"""
         \text{Manufacturing Share (\%)} =
@@ -124,7 +152,9 @@ with tab2:
         """
     )
 
-# --- Data Table ---
+# --------------------------------------------------
+# Data Table
+# --------------------------------------------------
 with st.expander("📄 View data"):
     st.dataframe(
         df_plot.style.format({
@@ -135,6 +165,7 @@ with st.expander("📄 View data"):
             "Manufacturing Share (%)": "{:.2f}%"
         })
     )
+
 
 
 #streamlit run app/app.py
