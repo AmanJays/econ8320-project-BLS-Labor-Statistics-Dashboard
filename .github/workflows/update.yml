@@ -1,30 +1,36 @@
+name: Update Labor Data
 
----
+on:
+  schedule:
+    - cron: "0 6 1 * *"   # Runs on the 1st of every month
+  workflow_dispatch:     # Allows manual run from GitHub
 
-## 🔄 Automation
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
 
-- **Data Fetching:** The dashboard automatically checks for the latest BLS data on startup.  
-- **Monthly Updates:** You can schedule `scripts/fetch_bls_data.py` to run automatically using GitHub Actions.
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
 
----
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-## 📊 Features
+      - name: Install dependencies
+        run: |
+          pip install pandas requests
 
-1. **Employment Statistics:** Employment levels & unemployment rates with trend arrows.  
-2. **Wage Growth vs Inflation:** Compare cumulative wage growth vs CPI inflation.  
-3. **Work Hours & Pay:** Hourly earnings, adjusted wages, and hours worked.  
-4. **Interactive Plots:** Filter by date, select metrics, hover for detailed values.  
-5. **Raw Data Expanders:** View the underlying data tables easily.
+      - name: Fetch latest labor data
+        run: |
+          python scripts/fetch_labor_data.py
 
----
-
-## ⚡ Usage
-
-### Local Development
-
-1. Clone the repo:
-
-```bash
-git clone https://github.com/<your-username>/econ8320-project-bls-labor-statistics-dashboard.git
-cd econ8320-project-bls-labor-statistics-dashboard
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add data/labor_data.csv
+          git commit -m "Update labor market data" || echo "No changes to commit"
+          git push
 
