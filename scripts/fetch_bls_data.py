@@ -2,152 +2,111 @@
 """
 scripts/fetch_bls_data.py
 
-Course-style BLS data fetcher:
-- Uses BLS Public API v2
-- Fetches a list of series for a configurable range of years
-- Writes/updates a long-format CSV at data/bls_data.csv
-- Designed to be run monthly (e.g., from GitHub Actions)
+Fetches U.S. labor statistics from the BLS API and saves as CSV.
+Designed to be run regularly (e.g., monthly).
 """
 
 import os
-import sys
 import json
 import requests
 import pandas as pd
 from datetime import datetime
-from typing import List, Dict
 
-# ---------------------------
-# CONFIG: change these if desired
-# ---------------------------
-SERIES = {
-    # series_id: friendly_name
-    "CES0000000001": "Total Nonfarm Payrolls",     # CES total nonfarm - verify if you prefer other CES series
-    "LNS14000000": "Unemployment Rate",           # Unemployment rate (U-3)
-    "LNS11300000": "Labor Force Participation Rate",
-    "CES0500000003": "Avg Hourly Earnings, Total Private",
-    "CES3000000001": "Manufacturing Employment"
+# --- Config ---
+OUTPUT_FILE = "data/data.csv"
+DEFAULT_START_YEAR = 2008
+DEFAULT_END_YEAR = datetime.now().year
+
+# BLS series keys
+SERIES_KEYS = {
+    "LNS14000000": "Unemployment Rate",
+    "CES0000000001": "Employment Level",
+    "CUUR0000SA0": "CPI",
+    "CES0500000003": "Hourly Earnings",
+    "CES0500000002": "Hours Worked"
 }
 
-DATA_DIR = "data"
-DATA_FILE = os.path.join(DATA_DIR, "bls_data.csv")
-API_ENV_VAR = "BLS_API_KEY"
+BLS_API = "https://api.bls.gov/publicAPI/v1/timeseries/data/"
 
-# ---------------------------
-# Helper functions / class
-# ---------------------------
+# --- Fetch JSON from BLS ---
+def request_json(series_ids, start_year, end_year):
+    headers = {"Content-type": "application/json"}
+    data = json.dumps({
+        "seriesid": series_ids,
+        "startyear": str(start_year),
+        "endyear": str(end_year)
+    })
+    response = requests.post(BLS_API, data=data, headers=headers)
+    response.raise_for_status()
+    return response.json()
 
-class BLSFetcher:
-    def __init__(self, api_key: str, series_ids: List[str], start_year: int = None, end_year: int = None):
-        self.api_key = api_key
-        self.series_ids = series_ids
-        now = datetime.utcnow()
-        self.end_year = end_year or now.year
-        # default: collect 5 years back (ensures > 1 year history). Change if you want more.
-        self.start_year = start_year or max(1970, now.year - 5)
-        self.url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
+# --- Convert JSON to DataFrame ---
+def convert_json(json_data):
+    records = []
+    for series in json_data["Results"]["series"]:
+        series_id = series["seriesID"]
+        name = SERIES_KEYS.get(series_id, series_id)
+        for item in series["data"]:
+            year = int(item["year"])
+            period = item["period"]
+            if "M" in period:
+                month = int(period.replace("M", ""))
+            else:
+                continue
+            date_str = f"{year}-{month:02d}-01"
+            value = float(item["value"].replace(",", ""))
+            records.append({"Date": date_str, "Series": name, "Value": value})
 
-    def fetch(self) -> Dict:
-        """
-        Fetch data for all series in one API request.
-        Returns the parsed JSON response.
-        """
-        headers = {"Content-type": "application/json"}
-        payload = {
-            "seriesid": self.series_ids,
-            "startyear": str(self.start_year),
-            "endyear": str(self.end_year),
-            "registrationKey": self.api_key
-        }
-        try:
-            resp = requests.post(self.url, data=json.dumps(payload), headers=headers, timeout=30)
-            resp.raise_for_status()
-            j = resp.json()
-            if j.get("status") != "REQUEST_SUCCEEDED":
-                raise RuntimeError(f"BLS API returned non-success status: {j.get('status')} - {j.get('message')}")
-            return j
-        except requests.RequestException as e:
-            raise RuntimeError(f"Request failed: {e}")
+    df = pd.DataFrame(records).pivot(index="Date", columns="Series", values="Value").reset_index()
+    df["Date"] = pd.to_datetime(df["Date"])
+    # Calculate Weekly Income
+    df["Hourly Earnings"] = pd.to_numeric(df.get("Hourly Earnings", 0), errors="coerce")
+    df["Hours Worked"] = pd.to_numeric(df.get("Hours Worked", 0), errors="coerce")
+    df["Weekly Income"] = round(df["Hourly Earnings"] * df["Hours Worked"], 2)
+    return df
 
-    def parse_to_df(self, json_resp: Dict) -> pd.DataFrame:
-        """
-        Convert BLS JSON response to a long-format DataFrame:
-        columns = ['series_id','series_title','year','period','date','value']
-        period is like 'M01' for January; date will be 'YYYY-MM'
-        """
-        rows = []
-        series_list = json_resp.get("Results", {}).get("series", [])
-        for s in series_list:
-            sid = s.get("seriesID")
-            title = s.get("catalog", {}).get("survey", "")  # fallback if no catalog
-            # If the API includes 'series' -> 'catalog' structure not always present; use provided mapping if available.
-            # The data array contains year & period & value
-            for item in s.get("data", []):
-                year = int(item.get("year"))
-                period = item.get("period")           # e.g., 'M01'
-                # skip annual or other non-monthly if needed; we'll keep anything.
-                value = item.get("value")
-                # convert period to YYYY-MM when possible
-                date_str = None
-                if period and period.startswith("M"):
-                    month = int(period[1:])
-                    date_str = f"{year:04d}-{month:02d}"
-                else:
-                    # For annual/quarterly, just use year with suffix
-                    date_str = f"{year}-{period}"
-                rows.append({
-                    "series_id": sid,
-                    "series_title": SERIES.get(sid, s.get("seriesID", sid)),
-                    "year": year,
-                    "period": period,
-                    "date": date_str,
-                    "value": pd.to_numeric(value, errors="coerce")
-                })
-        if not rows:
-            return pd.DataFrame(columns=["series_id","series_title","year","period","date","value"])
-        df = pd.DataFrame(rows)
-        # Keep newest rows first (helpful for append logic)
-        df = df.sort_values(["series_id","date"]).reset_index(drop=True)
-        return df
+# --- Initial Data Fetch ---
+def initial_data():
+    df = pd.DataFrame()
+    start_year = DEFAULT_START_YEAR
+    series_ids = list(SERIES_KEYS.keys())
 
-    def load_existing(self) -> pd.DataFrame:
-        """Load existing CSV if present, otherwise return empty df with proper columns."""
-        if os.path.exists(DATA_FILE):
-            return pd.read_csv(DATA_FILE, dtype={"series_id": str, "series_title": str, "year": int, "period": str, "date": str, "value": float})
-        else:
-            return pd.DataFrame(columns=["series_id","series_title","year","period","date","value"])
+    while start_year <= DEFAULT_END_YEAR:
+        end_year = min(start_year + 9, DEFAULT_END_YEAR)
+        json_data = request_json(series_ids, start_year, end_year)
+        new_df = convert_json(json_data)
+        df = pd.concat([df, new_df], ignore_index=True)
+        start_year += 10
 
-    def update_csv(self, new_df: pd.DataFrame):
-        """Append new rows to existing CSV, deduplicate, sort, and save."""
-        os.makedirs(DATA_DIR, exist_ok=True)
-        existing = self.load_existing()
-        combined = pd.concat([existing, new_df], axis=0, ignore_index=True)
-        # drop duplicate series_id + date combos, keep last (more recent API pull)
-        combined = combined.drop_duplicates(subset=["series_id","date"], keep="last")
-        # sort and save
-        combined = combined.sort_values(["series_id","date"]).reset_index(drop=True)
-        combined.to_csv(DATA_FILE, index=False)
-        print(f"Saved {len(combined)} total rows to {DATA_FILE}")
+    df = df.sort_values("Date")
+    os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
+    df.to_csv(OUTPUT_FILE, index=False)
+    print(f"Created {OUTPUT_FILE} ({DEFAULT_START_YEAR}-{DEFAULT_END_YEAR})")
 
-# ---------------------------
-# Script entrypoint
-# ---------------------------
+# --- Update Existing Data ---
+def update_data():
+    df = pd.read_csv(OUTPUT_FILE)
+    df["Date"] = pd.to_datetime(df["Date"])
+    last_year = df["Date"].max().year
+    current_year = datetime.now().year
+    if last_year >= current_year:
+        print("Data is already up-to-date.")
+        return
 
-def main():
-    api_key = os.environ.get(API_ENV_VAR)
-    if not api_key:
-        sys.exit(f"Error: environment variable {API_ENV_VAR} not set. Please set it to your BLS API key before running.\n"
-                 f"Example (Linux/macOS):\n  export {API_ENV_VAR}=\"YOURKEY\"\n"
-                 f"Example (Windows PowerShell):\n  setx {API_ENV_VAR} \"YOURKEY\"\n")
-    fetcher = BLSFetcher(api_key=api_key, series_ids=list(SERIES.keys()))
-    print(f"Fetching BLS series for years {fetcher.start_year} to {fetcher.end_year} ...")
-    resp = fetcher.fetch()
-    df = fetcher.parse_to_df(resp)
-    if df.empty:
-        print("Warning: no data returned by BLS API.")
+    series_ids = list(SERIES_KEYS.keys())
+    json_data = request_json(series_ids, last_year, current_year)
+    new_df = convert_json(json_data)
+    if not new_df.empty:
+        df = pd.concat([df, new_df], ignore_index=True).drop_duplicates(subset="Date")
+        df = df.sort_values("Date")
+        df.to_csv(OUTPUT_FILE, index=False)
+        print(f"Updated {OUTPUT_FILE} ({last_year}-{current_year})")
     else:
-        fetcher.update_csv(df)
-    print("Done.")
+        print("No new data available.")
 
+# --- Main Execution ---
 if __name__ == "__main__":
-    main()
+    if os.path.exists(OUTPUT_FILE):
+        update_data()
+    else:
+        initial_data()
