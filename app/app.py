@@ -53,8 +53,10 @@ years = sorted(df["Year"].unique())
 start_year = st.sidebar.selectbox("Start Year", years, index=0)
 end_year = st.sidebar.selectbox("End Year", years, index=len(years) - 1)
 
-if start_year > end_year:
-    st.sidebar.error("Start year must be before end year.")
+if start_year is not None and end_year is not None:
+    if start_year > end_year:
+        st.sidebar.error("Start year must be before end year.")
+
 
 df_plot = df.query("Year >= @start_year and Year <= @end_year").copy()
 
@@ -166,6 +168,6 @@ with st.expander("📄 View data"):
         })
     )
 
-
-
-#streamlit run app/app.py
+#----------------------------------------------------------
+# To run the app, use the command:streamlit run app/app.py
+#----------------------------------------------------------
