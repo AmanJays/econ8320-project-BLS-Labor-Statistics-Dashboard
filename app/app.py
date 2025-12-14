@@ -85,12 +85,12 @@ col1, col2 = st.columns(2)
 
 col1.metric(
     "Change in Unemployment Rate",
-    f"{unemp_change:+.2f} percentage points {trend_emoji(unemp_change)}"
+    f"{unemp_change:+.2f} % {trend_emoji(unemp_change)}"
 )
 
 col2.metric(
     "Change in Manufacturing Employment Share",
-    f"{share_change:+.2f} percentage points {trend_emoji(share_change)}"
+    f"{share_change:+.2f} % {trend_emoji(share_change)}"
 )
 
 # --------------------------------------------------
