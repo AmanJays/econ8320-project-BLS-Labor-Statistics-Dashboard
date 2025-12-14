@@ -47,10 +47,10 @@ df_plot['Adj Hourly Earnings'] = round(df_plot["Hourly Earnings"] / df_plot["CPI
 
 # --- Helper Function: Trend Arrows ---
 def format_metric(value, delta):
-    """Return formatted value with colored arrow"""
+    """Return formatted value with arrow; delta_color compatible with Streamlit"""
     arrow = "🔼" if delta > 0 else ("🔽" if delta < 0 else "")
-    color = "green" if delta > 0 else ("red" if delta < 0 else "normal")
-    return f"{value} {arrow}", color
+    delta_color = "normal"  # Streamlit automatically handles green/red
+    return f"{value} {arrow}", delta_color
 
 # --- Tabs ---
 tabs = st.tabs(["💼 Employment", "📈 Wage vs Inflation", "💵 Work Hours & Pay"])
@@ -68,7 +68,6 @@ with tabs[0]:
     col1.metric("Employment Level", emp_val, delta_color=emp_color)
     col2.metric("Unemployment Rate", unemp_val, delta_color=unemp_color)
 
-    # Selectable metrics
     selection = st.multiselect("Select metrics", ["Employment Level", "Unemployment Rate"],
                                default=["Employment Level", "Unemployment Rate"])
 
@@ -106,7 +105,6 @@ with tabs[1]:
     col1.metric("Weekly Income", wage_val, delta_color=wage_color)
     col2.metric("CPI", cpi_val, delta_color=cpi_color)
 
-    # Selectable metrics
     selection = st.multiselect("Select metrics", ["Wage Growth", "Inflation"], default=["Wage Growth", "Inflation"])
 
     fig = go.Figure()
@@ -141,7 +139,6 @@ with tabs[2]:
     col1.metric("Hourly Earnings", hr_val, delta_color=hr_color)
     col2.metric("Adj. Hourly Earnings", adj_val, delta_color=adj_color)
 
-    # Selectable metrics
     selection = st.multiselect("Select metrics", ["Hourly Earnings", "Adj. Hourly Earnings", "Hours Worked"],
                                default=["Hourly Earnings", "Adj. Hourly Earnings", "Hours Worked"])
 
@@ -168,3 +165,4 @@ with tabs[2]:
             'Adj Hourly Earnings': "${:.1f}",
             'Hours Worked': "{:.1f}"
         }))
+#streamlit run app/app.py
