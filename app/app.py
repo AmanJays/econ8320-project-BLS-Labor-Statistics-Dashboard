@@ -14,7 +14,7 @@ st.markdown(
     """
     This dashboard combines **short-run labor market conditions**
     (unemployment rate) with **long-run structural change**
-    (manufacturing's share of employment).
+    (manufacturing’s share of employment).
     """
 )
 
@@ -23,25 +23,23 @@ st.markdown(
 def load_data():
     df = pd.read_csv("data/labor_data.csv")
     df["Date"] = pd.to_datetime(df["Date"])
+    df["Year"] = df["Date"].dt.year
     return df
 
 df = load_data()
 
-# --- Sidebar ---
-st.sidebar.header("📅 Timeframe")
+# --- Sidebar: Year Selection ---
+st.sidebar.header("📅 Select Time Period")
 
-min_date = df["Date"].min().date()
-max_date = df["Date"].max().date()
+years = sorted(df["Year"].unique())
 
-start_date, end_date = st.sidebar.slider(
-    "Select date range",
-    min_value=min_date,
-    max_value=max_date,
-    value=(min_date, max_date),
-    format="MMM YYYY"
-)
+start_year = st.sidebar.selectbox("Start Year", years, index=0)
+end_year = st.sidebar.selectbox("End Year", years, index=len(years) - 1)
 
-df_plot = df.query("Date >= @start_date and Date <= @end_date").copy()
+if start_year > end_year:
+    st.sidebar.error("Start year must be before end year.")
+
+df_plot = df.query("Year >= @start_year and Year <= @end_year").copy()
 
 # --- Manufacturing Share ---
 df_plot["Manufacturing Share (%)"] = (
@@ -50,25 +48,26 @@ df_plot["Manufacturing Share (%)"] = (
     * 100
 )
 
-# --- Metrics ---
+# --- Calculations ---
 start_unemp = df_plot.iloc[0]["Unemployment Rate"]
 end_unemp = df_plot.iloc[-1]["Unemployment Rate"]
+unemp_change = end_unemp - start_unemp
 
 start_share = df_plot.iloc[0]["Manufacturing Share (%)"]
 end_share = df_plot.iloc[-1]["Manufacturing Share (%)"]
+share_change = end_share - start_share
 
+# --- Metrics ---
 col1, col2 = st.columns(2)
 
 col1.metric(
-    "Unemployment Rate (Latest)",
-    f"{end_unemp:.1f}%",
-    delta=f"{end_unemp - start_unemp:+.1f} pts"
+    "Change in Unemployment Rate",
+    f"{unemp_change:+.2f} percentage points"
 )
 
 col2.metric(
-    "Manufacturing Share (Latest)",
-    f"{end_share:.2f}%",
-    delta=f"{end_share - start_share:+.2f} pts"
+    "Change in Manufacturing Employment Share",
+    f"{share_change:+.2f} percentage points"
 )
 
 # --- Tabs ---
@@ -114,7 +113,18 @@ with tab2:
 
     st.plotly_chart(fig2, use_container_width=True)
 
-# --- Data ---
+    # --- Show the formula (work) ---
+    st.markdown("### 📐 How Manufacturing Share Is Calculated")
+    st.latex(
+        r"""
+        \text{Manufacturing Share (\%)} =
+        \frac{\text{Manufacturing Employment}}
+        {\text{Total Nonfarm Payrolls}}
+        \times 100
+        """
+    )
+
+# --- Data Table ---
 with st.expander("📄 View data"):
     st.dataframe(
         df_plot.style.format({
