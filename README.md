@@ -5,7 +5,7 @@ A full-stack automated dashboard tracking U.S. employment, wage growth, and infl
 ---
 
 ## 🚀 Live Demo
-**[Click here to view the interactive dashboard]([https://share.streamlit.io/<username>/<repo>/main/app/app.py](https://econ8320-project-bls-labor-statistics-dashboard-i42zumaice6k9p.streamlit.app/))**
+**[Click here to view the interactive dashboard](https://econ8320-project-bls-labor-statistics-dashboard-i42zumaice6k9p.streamlit.app/)**
 
 ---
 
