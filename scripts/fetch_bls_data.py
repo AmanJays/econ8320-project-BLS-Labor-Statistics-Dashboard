@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Fetch unemployment rate, total nonfarm payrolls,
-and manufacturing employment from BLS (no API key).
+Fetch U.S. labor market data (2008–present) and save as CSV.
+Handles series with different start dates (CPS vs CES).
 """
 
 import os
@@ -10,70 +10,90 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-# --- Config ---
+# --------------------------------------------------
+# Config
+# --------------------------------------------------
 OUTPUT_FILE = "data/labor_data.csv"
 START_YEAR = 2000
 END_YEAR = datetime.now().year
 
-SERIES = {
-    "LNS14000000": "Unemployment Rate",
-    "CES0000000001": "Total Nonfarm Payrolls",
-    "CES3000000001": "Manufacturing Employment"
+SERIES_KEYS = {
+    "LNS14000000": "Unemployment Rate",          # CPS
+    "CES0000000001": "Total Nonfarm Payrolls",   # CES
+    "CES3000000001": "Manufacturing Employment" # CES
 }
 
 BLS_API = "https://api.bls.gov/publicAPI/v1/timeseries/data/"
 
-# --- Fetch ---
-def fetch_data(series_ids, start_year, end_year):
-    payload = json.dumps({
+# --------------------------------------------------
+# Request JSON from BLS
+# --------------------------------------------------
+def request_json(series_ids, start_year, end_year):
+    headers = {"Content-type": "application/json"}
+    data = json.dumps({
         "seriesid": series_ids,
         "startyear": str(start_year),
         "endyear": str(end_year)
     })
-    headers = {"Content-type": "application/json"}
-    response = requests.post(BLS_API, data=payload, headers=headers)
+    response = requests.post(BLS_API, data=data, headers=headers)
     response.raise_for_status()
     return response.json()
 
-# --- Parse ---
-def parse_json(json_data):
+# --------------------------------------------------
+# Convert JSON to DataFrame
+# --------------------------------------------------
+def convert_json(json_data):
     records = []
-
     for series in json_data["Results"]["series"]:
-        name = SERIES.get(series["seriesID"], series["seriesID"])
-
+        series_id = series["seriesID"]
+        name = SERIES_KEYS.get(series_id, series_id)
         for item in series["data"]:
-            if not item["period"].startswith("M"):
-                continue
-
             year = int(item["year"])
-            month = int(item["period"][1:])
-            date = f"{year}-{month:02d}-01"
+            period = item["period"]
+            if "M" in period:
+                month = int(period.replace("M", ""))
+            else:
+                continue
+            date_str = f"{year}-{month:02d}-01"
+            value = float(item["value"].replace(",", ""))
+            records.append({"Date": date_str, "Series": name, "Value": value})
 
-            records.append({
-                "Date": date,
-                "Series": name,
-                "Value": float(item["value"])
-            })
-
-    df = (
-        pd.DataFrame(records)
-        .pivot(index="Date", columns="Series", values="Value")
-        .reset_index()
-    )
-
+    df = pd.DataFrame(records).pivot(index="Date", columns="Series", values="Value").reset_index()
     df["Date"] = pd.to_datetime(df["Date"])
-    df = df.sort_values("Date")
     return df
 
-# --- Main ---
-if __name__ == "__main__":
+# --------------------------------------------------
+# Main: Fetch All Series
+# --------------------------------------------------
+def fetch_all_data():
     print("Fetching labor market data...")
 
-    json_data = fetch_data(list(SERIES.keys()), START_YEAR, END_YEAR)
-    df = parse_json(json_data)
+    df_all = pd.DataFrame()
+    series_ids = list(SERIES_KEYS.keys())
 
-    os.makedirs("data", exist_ok=True)
-    df.to_csv(OUTPUT_FILE, index=False)
+    start_year = START_YEAR
+    while start_year <= END_YEAR:
+        end_year_chunk = min(start_year + 9, END_YEAR)
+        json_data = request_json(series_ids, start_year, end_year_chunk)
+        df_chunk = convert_json(json_data)
+        df_all = pd.concat([df_all, df_chunk], ignore_index=True)
+        start_year += 10
 
-    print(f"Saved {len(df)} rows to {OUTPUT_FILE}")
+    df_all = df_all.sort_values("Date").reset_index(drop=True)
+
+    # Forward-fill missing CES series (e.g., Manufacturing Employment)
+    for col in ["Total Nonfarm Payrolls", "Manufacturing Employment"]:
+        if col in df_all.columns:
+            df_all[col] = df_all[col].ffill()
+
+    # Add Manufacturing Share (%) = Manufacturing / Total Nonfarm Payrolls * 100
+    if "Manufacturing Employment" in df_all.columns and "Total Nonfarm Payrolls" in df_all.columns:
+        df_all["Manufacturing Share (%)"] = df_all["Manufacturing Employment"] / df_all["Total Nonfarm Payrolls"] * 100
+
+    # Save CSV
+    os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
+    df_all.to_csv(OUTPUT_FILE, index=False)
+    print(f"Saved {len(df_all)} rows to {OUTPUT_FILE}")
+
+if __name__ == "__main__":
+    fetch_all_data()
