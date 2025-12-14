@@ -3,8 +3,8 @@
 
 ## 🔄 Automation
 
-- **Data Fetching:** The app automatically checks for the latest BLS data on startup.  
-- **Monthly Updates:** Can be scheduled using GitHub Actions (optional).  
+- **Data Fetching:** The dashboard automatically checks for the latest BLS data on startup.  
+- **Monthly Updates:** You can schedule `scripts/fetch_bls_data.py` to run automatically using GitHub Actions.
 
 ---
 
@@ -25,5 +25,6 @@
 1. Clone the repo:
 
 ```bash
-git clone https://github.com/<username>/us-labor-dashboard.git
-cd us-labor-dashboard
+git clone https://github.com/<your-username>/econ8320-project-bls-labor-statistics-dashboard.git
+cd econ8320-project-bls-labor-statistics-dashboard
+
