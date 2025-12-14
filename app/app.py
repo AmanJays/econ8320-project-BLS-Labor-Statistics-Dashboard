@@ -1,65 +1,66 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from scripts.fetch_bls_data import OUTPUT_FILE
-import os
+from scripts.fetch_bls_data import collect_data
 
-# --- Page Setup ---
-st.set_page_config(layout="wide", page_title="U.S. Labor Statistics Dashboard")
+st.set_page_config(layout="wide", page_title="U.S. Labor Dashboard")
 st.title("🇺🇸 U.S. Labor Statistics Dashboard")
 
-# --- Load Data ---
-if not os.path.isfile(OUTPUT_FILE):
-    st.warning("Data not found. Run `fetch_bls_data.py` first.")
-    st.stop()
+# Load data
+df = collect_data()
 
-df = pd.read_csv(OUTPUT_FILE)
-df['Date'] = pd.to_datetime(df['Date'])
-
-# --- Sidebar Navigation ---
+# Sidebar navigation
 st.sidebar.header("Navigation")
-page = st.sidebar.radio("Go to", ["Employment Stats", "Wage vs Inflation", "Hours & Pay"])
+page = st.sidebar.radio("Select Page", ["Employment", "Wage & Inflation", "Work Hours"])
 
-# --- Filter Date Range ---
-min_date, max_date = df['Date'].min(), df['Date'].max()
-start_date, end_date = st.sidebar.date_input("Select Date Range", [min_date, max_date])
-df_filtered = df[(df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))]
+# Date range filter
+min_date = df["Date"].min()
+max_date = df["Date"].max()
+start_date, end_date = st.sidebar.slider(
+    "Date Range", min_value=min_date, max_value=max_date, value=(min_date, max_date)
+)
+df_filtered = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)].copy()
 
-# --- Charts ---
-fig = go.Figure()
-
-if page == "Employment Stats":
-    st.header("💼 Employment & Unemployment")
-    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Employment Level'], name="Employment Level"))
-    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Unemployment Rate'], name="Unemployment Rate", yaxis="y2"))
+# Metrics
+if page == "Employment":
+    st.subheader("Employment Metrics")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df_filtered["Date"], y=df_filtered["Employment Level"],
+                             name="Employment Level", line=dict(color="blue")))
+    fig.add_trace(go.Scatter(x=df_filtered["Date"], y=df_filtered["Unemployment Rate"],
+                             name="Unemployment Rate", line=dict(color="red"), yaxis="y2"))
     fig.update_layout(
         yaxis=dict(title="Employment Level"),
-        yaxis2=dict(title="Unemployment Rate", overlaying="y", side="right"),
-        legend=dict(orientation="h")
+        yaxis2=dict(title="Unemployment Rate (%)", overlaying="y", side="right"),
+        hovermode="x unified"
     )
+    st.plotly_chart(fig, use_container_width=True)
 
-elif page == "Wage vs Inflation":
-    st.header("📈 Wage Growth vs Inflation")
-    base_cpi = df_filtered['CPI'].iloc[0]
-    df_filtered['Inflation'] = (df_filtered['CPI'] - base_cpi)/base_cpi * 100
-    base_wage = df_filtered['Weekly Income'].iloc[0]
-    df_filtered['Wage Growth'] = (df_filtered['Weekly Income'] - base_wage)/base_wage * 100
-    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Wage Growth'], name="Wage Growth"))
-    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Inflation'], name="Inflation"))
-    fig.update_layout(yaxis=dict(title="Cumulative Growth (%)"), legend=dict(orientation="h"))
+elif page == "Wage & Inflation":
+    st.subheader("Wage Growth vs Inflation")
+    base_cpi = df_filtered["CPI"].iloc[0]
+    base_income = df_filtered["Weekly Income"].iloc[0]
+    df_filtered["Inflation %"] = (df_filtered["CPI"] - base_cpi)/base_cpi*100
+    df_filtered["Wage Growth %"] = (df_filtered["Weekly Income"] - base_income)/base_income*100
 
-else:
-    st.header("💵 Hours & Pay")
-    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Hourly Earnings'], name="Hourly Earnings"))
-    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Hours Worked'], name="Hours Worked", yaxis="y2"))
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df_filtered["Date"], y=df_filtered["Wage Growth %"],
+                             name="Wage Growth %", line=dict(color="green")))
+    fig.add_trace(go.Scatter(x=df_filtered["Date"], y=df_filtered["Inflation %"],
+                             name="Inflation %", line=dict(color="orange")))
+    fig.update_layout(yaxis=dict(title="Cumulative Growth %"), hovermode="x unified")
+    st.plotly_chart(fig, use_container_width=True)
+
+elif page == "Work Hours":
+    st.subheader("Work Hours & Pay")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df_filtered["Date"], y=df_filtered["Hourly Earnings"],
+                             name="Hourly Earnings", line=dict(color="pink")))
+    fig.add_trace(go.Scatter(x=df_filtered["Date"], y=df_filtered["Hours Worked"],
+                             name="Hours Worked", line=dict(color="gold"), yaxis="y2"))
     fig.update_layout(
-        yaxis=dict(title="Wage ($)"),
+        yaxis=dict(title="Hourly Earnings ($)"),
         yaxis2=dict(title="Hours Worked", overlaying="y", side="right"),
-        legend=dict(orientation="h")
+        hovermode="x unified"
     )
-
-st.plotly_chart(fig, use_container_width=True)
-
-# --- Show Raw Data ---
-with st.expander("View Raw Data"):
-    st.dataframe(df_filtered)
+    st.plotly_chart(fig, use_container_width=True)
