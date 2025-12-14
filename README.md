@@ -1,22 +1,13 @@
-# Setup (local)
-1. Create a virtualenv:
-   python -m venv .venv
-   source .venv/bin/activate   # mac/linux
-   .venv\Scripts\activate      # windows
+# U.S. Labor Statistics Dashboard 📊
 
-2. Install:
-   pip install pandas requests streamlit plotly
+A full-stack automated dashboard tracking U.S. employment, wage growth, and inflation trends. Built with **Streamlit**, **Plotly**, and **Python**.
 
-3. Set your BLS API key (one-time):
-   export BLS_API_KEY="YOUR_BLS_KEY"   # mac/linux
-   setx BLS_API_KEY "YOUR_BLS_KEY"     # windows (restart terminal)
+---
 
-4. Run the fetch script:
-   python scripts/fetch_bls_data.py
+## 🚀 Live Demo
+**[Click here to view the interactive dashboard](https://share.streamlit.io/<username>/<repo>/main/app/app.py)**
 
-5. Run the app:
-   streamlit run app.py
+---
 
-# GitHub Actions
-- Add a repo secret named `BLS_API_KEY` with your key value.
-- The workflow `.github/workflows/update.yml` will run monthly and commit updated `data/bls_data.csv`.
+## 📦 Repository Structure
+
