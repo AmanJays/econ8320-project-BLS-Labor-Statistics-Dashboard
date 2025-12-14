@@ -56,4 +56,4 @@ This project is designed to:
 
 You can try it live here:
 
-**[Click here to view the interactive dashboard](https://econ8320-project-bls-labor-statistics-dashboard-i42zumaice6k9p.streamlit.app/)**
+**[Click here to view the interactive dashboard]()**
