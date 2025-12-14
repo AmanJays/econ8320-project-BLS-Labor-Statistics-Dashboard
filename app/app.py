@@ -1,81 +1,65 @@
-import os
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
+from scripts.fetch_bls_data import OUTPUT_FILE
+import os
 
-DATA_FILE = "data/bls_data.csv"
+# --- Page Setup ---
+st.set_page_config(layout="wide", page_title="U.S. Labor Statistics Dashboard")
+st.title("🇺🇸 U.S. Labor Statistics Dashboard")
 
-st.set_page_config(
-    page_title="US Labor Statistics — BLS",
-    layout="wide"
-)
-
-st.title("US Labor Statistics — BLS (Auto-updating)")
-
-@st.cache_data
-def load_data():
-    if not os.path.exists(DATA_FILE):
-        return pd.DataFrame()
-    return pd.read_csv(DATA_FILE, dtype={"date": str})
-
-
-df = load_data()
-
-if df.empty:
-    st.error("Data file not found. Run scripts/fetch_bls_data.py first.")
+# --- Load Data ---
+if not os.path.isfile(OUTPUT_FILE):
+    st.warning("Data not found. Run `fetch_bls_data.py` first.")
     st.stop()
 
-# Sidebar controls
-series_map = (
-    df[["series_id", "series_title"]]
-    .drop_duplicates()
-    .set_index("series_id")["series_title"]
-    .to_dict()
-)
+df = pd.read_csv(OUTPUT_FILE)
+df['Date'] = pd.to_datetime(df['Date'])
 
-selected = st.multiselect(
-    "Choose series to display",
-    options=list(series_map.keys()),
-    default=list(series_map.keys()),
-    format_func=lambda s: f"{series_map[s]} ({s})",
-)
+# --- Sidebar Navigation ---
+st.sidebar.header("Navigation")
+page = st.sidebar.radio("Go to", ["Employment Stats", "Wage vs Inflation", "Hours & Pay"])
 
-min_date, max_date = df["date"].min(), df["date"].max()
+# --- Filter Date Range ---
+min_date, max_date = df['Date'].min(), df['Date'].max()
+start_date, end_date = st.sidebar.date_input("Select Date Range", [min_date, max_date])
+df_filtered = df[(df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))]
 
-st.sidebar.markdown(f"**Data range:** {min_date} → {max_date}")
-start = st.sidebar.text_input("Start (YYYY-MM)", min_date)
-end = st.sidebar.text_input("End (YYYY-MM)", max_date)
+# --- Charts ---
+fig = go.Figure()
 
-plot_df = df[df["series_id"].isin(selected)]
-plot_df = plot_df[(plot_df["date"] >= start) & (plot_df["date"] <= end)]
+if page == "Employment Stats":
+    st.header("💼 Employment & Unemployment")
+    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Employment Level'], name="Employment Level"))
+    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Unemployment Rate'], name="Unemployment Rate", yaxis="y2"))
+    fig.update_layout(
+        yaxis=dict(title="Employment Level"),
+        yaxis2=dict(title="Unemployment Rate", overlaying="y", side="right"),
+        legend=dict(orientation="h")
+    )
 
-# KPIs
-st.subheader("Latest values")
-cols = st.columns(min(len(selected), 4))
-for i, sid in enumerate(selected[:4]):
-    s = plot_df[plot_df["series_id"] == sid]
-    if not s.empty:
-        val = s.sort_values("date").iloc[-1]["value"]
-        cols[i].metric(series_map[sid], f"{val}")
-    else:
-        cols[i].metric(series_map[sid], "N/A")
+elif page == "Wage vs Inflation":
+    st.header("📈 Wage Growth vs Inflation")
+    base_cpi = df_filtered['CPI'].iloc[0]
+    df_filtered['Inflation'] = (df_filtered['CPI'] - base_cpi)/base_cpi * 100
+    base_wage = df_filtered['Weekly Income'].iloc[0]
+    df_filtered['Wage Growth'] = (df_filtered['Weekly Income'] - base_wage)/base_wage * 100
+    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Wage Growth'], name="Wage Growth"))
+    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Inflation'], name="Inflation"))
+    fig.update_layout(yaxis=dict(title="Cumulative Growth (%)"), legend=dict(orientation="h"))
 
-# Chart
-st.subheader("Time series")
-fig = px.line(
-    plot_df,
-    x="date",
-    y="value",
-    color="series_title",
-    labels={"date": "Date", "value": "Value"},
-)
+else:
+    st.header("💵 Hours & Pay")
+    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Hourly Earnings'], name="Hourly Earnings"))
+    fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Hours Worked'], name="Hours Worked", yaxis="y2"))
+    fig.update_layout(
+        yaxis=dict(title="Wage ($)"),
+        yaxis2=dict(title="Hours Worked", overlaying="y", side="right"),
+        legend=dict(orientation="h")
+    )
+
 st.plotly_chart(fig, use_container_width=True)
 
-# Data table
-with st.expander("Show underlying data"):
-    st.dataframe(plot_df.sort_values(["series_title", "date"]), use_container_width=True)
-
-st.caption(
-    "Data sourced from the U.S. Bureau of Labor Statistics (BLS). "
-    "Updated locally via API and visualized with Streamlit."
-)
+# --- Show Raw Data ---
+with st.expander("View Raw Data"):
+    st.dataframe(df_filtered)
