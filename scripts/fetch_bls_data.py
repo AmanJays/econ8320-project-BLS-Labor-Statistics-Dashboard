@@ -15,9 +15,12 @@ SERIES = {
     "CES3000000001": "Manufacturing Employment"
 }
 
-DATA_DIR = "data"
-DATA_FILE = os.path.join(DATA_DIR, "bls_data.csv")
-API_ENV_VAR = "BLS_API_KEY"
+@st.cache_data
+def load_data():
+    df = pd.read_csv('data.csv')
+    df['Date'] = pd.to_datetime(df['Date'])
+    return df
+
 
 
 class BLSFetcher:
