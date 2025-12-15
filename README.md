@@ -88,3 +88,6 @@ The dashboard separates these concepts to make interpretation clear, intuitive, 
 
    ```bash
    pip install -r requirements.txt
+   python scripts/fetch_labor_data.py
+   streamlit run app/app.py
+
