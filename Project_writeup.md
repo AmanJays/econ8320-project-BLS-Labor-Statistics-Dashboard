@@ -1,4 +1,4 @@
-# U.S. Labor Structure Dashboard: Project Write-up
+# U.S. Labor Structure 
 
 ## Introduction
 The goal of this project was to build a complete, reproducible data product that explores key trends in the U.S. labor market using official data from the Bureau of Labor Statistics (BLS). Rather than focusing on a single indicator, the project examines **key trends in the U.S. labor market over time**, combining unemployment and labor force participation with structural changes in employment, such as manufacturing’s share of total nonfarm employment.  
