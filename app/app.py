@@ -98,29 +98,57 @@ col2.metric(
 # --------------------------------------------------
 # Tabs
 # --------------------------------------------------
-tab1, tab2 = st.tabs(["📉 Unemployment Rate", "🏭 Manufacturing Share"])
+tab1, tab2 = st.tabs(["📈 Time Series", "🏭 Manufacturing Share"])
+
 
 # --------------------------------------------------
 # Tab 1: Unemployment Rate
 # --------------------------------------------------
 with tab1:
-    fig1 = go.Figure()
-    fig1.add_trace(
-        go.Scatter(
-            x=df_plot["Date"],
-            y=df_plot["Unemployment Rate"],
-            mode="lines",
-            name="Unemployment Rate"
+    left, right = st.columns(2)
+
+    # --- Unemployment Rate ---
+    with left:
+        fig1 = go.Figure()
+        fig1.add_trace(
+            go.Scatter(
+                x=df_plot["Date"],
+                y=df_plot["Unemployment Rate"],
+                mode="lines",
+                name="Unemployment Rate"
+            )
         )
-    )
 
-    fig1.update_layout(
-        yaxis_title="Unemployment Rate (%)",
-        xaxis_title="Date",
-        hovermode="x unified"
-    )
+        fig1.update_layout(
+            title="Unemployment Rate",
+            yaxis_title="Percent (%)",
+            xaxis_title="Date",
+            hovermode="x unified"
+        )
 
-    st.plotly_chart(fig1, use_container_width=True)
+        st.plotly_chart(fig1, use_container_width=True)
+
+    # --- Labor Force Participation Rate ---
+    with right:
+        fig2 = go.Figure()
+        fig2.add_trace(
+            go.Scatter(
+                x=df_plot["Date"],
+                y=df_plot["Labor Force Participation Rate"],
+                mode="lines",
+                name="Labor Force Participation Rate"
+            )
+        )
+
+        fig2.update_layout(
+            title="Labor Force Participation Rate",
+            yaxis_title="Percent (%)",
+            xaxis_title="Date",
+            hovermode="x unified"
+        )
+
+        st.plotly_chart(fig2, use_container_width=True)
+
 
 # --------------------------------------------------
 # Tab 2: Manufacturing Share
