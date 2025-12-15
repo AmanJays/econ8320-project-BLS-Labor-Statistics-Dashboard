@@ -22,7 +22,7 @@ The *Time Series* tab displays two key labor indicators side by side: The dashbo
 
 * **Unemployment Rate**
 
-  * Monthly U.S. unemployment rate
+  * Yearly U.S. unemployment rate
   * Users select a start year and end year
 
 * **Labor Force Participation Rate**
