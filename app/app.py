@@ -63,6 +63,7 @@ df_plot = df.query("Year >= @start_year and Year <= @end_year").copy()
 # --------------------------------------------------
 # Calculations
 # --------------------------------------------------
+
 # Manufacturing Share
 df_plot["Manufacturing Share (%)"] = (
     df_plot["Manufacturing Employment"]
@@ -80,10 +81,16 @@ start_share = df_plot.iloc[0]["Manufacturing Share (%)"]
 end_share = df_plot.iloc[-1]["Manufacturing Share (%)"]
 share_change = end_share - start_share
 
+# Labor Force Participation Rate change
+start_lfpr = df_plot.iloc[0]["Labor Force Participation Rate"]
+end_lfpr = df_plot.iloc[-1]["Labor Force Participation Rate"]
+lfpr_change = end_lfpr - start_lfpr
+
+
 # --------------------------------------------------
 # Metrics
 # --------------------------------------------------
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 col1.metric(
     "Change in Unemployment Rate",
@@ -94,6 +101,12 @@ col2.metric(
     "Change in Manufacturing Employment Share",
     f"{share_change:+.2f} % {trend_emoji(share_change)}"
 )
+
+col3.metric(
+    "Change in Labor Force Participation Rate",
+    f"{lfpr_change:+.2f} % {trend_emoji(lfpr_change)}"
+)
+
 
 # --------------------------------------------------
 # Tabs
