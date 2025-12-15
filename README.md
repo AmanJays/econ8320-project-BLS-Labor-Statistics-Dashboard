@@ -9,10 +9,6 @@ You can try it live here:
 
 This project explores U.S. labor market trends using official data from the **Bureau of Labor Statistics (BLS)**. The dashboard is designed to clearly separate **short-run labor market conditions** from **long-run structural changes** in the economy.
 
-The dashboard focuses on two main ideas:
-
-* **Unemployment Rate** – captures short-term labor market conditions
-* **Manufacturing’s Share of Employment** – captures long-term structural change in the U.S. economy
 
 The goal is to provide a simple, transparent, and interpretable view of how the U.S. labor market has evolved over time.
 
