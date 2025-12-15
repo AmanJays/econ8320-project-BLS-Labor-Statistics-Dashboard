@@ -23,18 +23,19 @@ The goal is to provide a simple, transparent, and interpretable view of how the 
 ### 1. Time Series: Labor Market Conditions
 
 The *Time Series* tab displays two key labor indicators side by side:
+  * The dashboard reports the total change (in percentage points) over the selected period
+  * An up or down arrow (⬆️ / ⬇️) highlights the direction of change
 
 * **Unemployment Rate**
 
   * Monthly U.S. unemployment rate
   * Users select a start year and end year
-  * The dashboard reports the total change (in percentage points) over the selected period
-  * An up or down arrow (⬆️ / ⬇️) highlights the direction of change
 
 * **Labor Force Participation Rate**
 
   * Shows the share of the population that is working or actively looking for work
   * Provides important context for unemployment trends
+    
 
 Together, these series help distinguish between changes driven by job availability and changes driven by labor force participation.
 
