@@ -98,14 +98,15 @@ col1.metric(
 )
 
 col2.metric(
+    "Change in Labor Force Participation Rate",
+    f"{lfpr_change:+.2f} % {trend_emoji(lfpr_change)}"
+)
+col3.metric(
     "Change in Manufacturing Employment Share",
     f"{share_change:+.2f} % {trend_emoji(share_change)}"
 )
 
-col3.metric(
-    "Change in Labor Force Participation Rate",
-    f"{lfpr_change:+.2f} % {trend_emoji(lfpr_change)}"
-)
+
 
 
 # --------------------------------------------------
