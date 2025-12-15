@@ -12,13 +12,6 @@ st.set_page_config(
 
 st.title("🇺🇸 U.S. Labor Market Overview")
 
-st.markdown(
-    """
-    This dashboard combines **short-run labor market conditions**
-    (unemployment rate) with **long-run structural change**
-    (manufacturing’s share of employment).
-    """
-)
 
 # --------------------------------------------------
 # Helper Function: Trend Emoji
