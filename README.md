@@ -22,9 +22,7 @@ The goal is to provide a simple, transparent, and interpretable view of how the 
 
 ### 1. Time Series: Labor Market Conditions
 
-The *Time Series* tab displays two key labor indicators side by side:
-  * The dashboard reports the total change (in percentage points) over the selected period
-  * An up or down arrow (⬆️ / ⬇️) highlights the direction of change
+The *Time Series* tab displays two key labor indicators side by side: The dashboard reports the total change (in percentage points) over the selected period. An up or down arrow (⬆️ / ⬇️) highlights the direction of change
 
 * **Unemployment Rate**
 
