@@ -7,6 +7,8 @@ You can try it live here:
 **[Click here to view the interactive dashboard](https://econ8320-project-bls-labor-statistics-dashboard-i42zumaice6k9p.streamlit.app/)**
 
 **[Click here to view video presentation](https://www.youtube.com/watch?v=bi2h2k8h88k)**
+
+
 This project explores U.S. labor market trends using official data from the **Bureau of Labor Statistics (BLS)**. The dashboard is designed to clearly separate **labor market trends** from **structural changes** in the economy.
 
 The goal is to provide a simple, transparent, and interpretable view of how the U.S. labor market has evolved over time.
