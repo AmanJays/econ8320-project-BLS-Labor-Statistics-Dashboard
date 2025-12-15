@@ -18,10 +18,12 @@ START_YEAR = 2000
 END_YEAR = datetime.now().year
 
 SERIES_KEYS = {
-    "LNS14000000": "Unemployment Rate",          # CPS
-    "CES0000000001": "Total Nonfarm Payrolls",   # CES
-    "CES3000000001": "Manufacturing Employment" # CES
+    "LNS14000000": "Unemployment Rate",          
+    "LNS11300000": "Labor Force Participation Rate",
+    "CES0000000001": "Total Nonfarm Payrolls",   
+    "CES3000000001": "Manufacturing Employment"
 }
+
 
 BLS_API = "https://api.bls.gov/publicAPI/v1/timeseries/data/"
 
