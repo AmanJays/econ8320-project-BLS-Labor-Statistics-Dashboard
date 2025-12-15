@@ -7,7 +7,7 @@ You can try it live here:
 **[Click here to view the interactive dashboard](https://econ8320-project-bls-labor-statistics-dashboard-i42zumaice6k9p.streamlit.app/)**
 
 
-This project explores U.S. labor market trends using official data from the **Bureau of Labor Statistics (BLS)**. The dashboard is designed to clearly separate **short-run labor market conditions** from **long-run structural changes** in the economy.
+This project explores U.S. labor market trends using official data from the **Bureau of Labor Statistics (BLS)**. The dashboard is designed to clearly separate **labor market conditions** from **structural changes** in the economy.
 
 
 The goal is to provide a simple, transparent, and interpretable view of how the U.S. labor market has evolved over time.
@@ -62,7 +62,6 @@ All values come directly from official BLS employment series.
 This project is designed to:
 
 * Demonstrate time-series data analysis
-* Combine short-run labor market indicators with long-run structural trends
 * Show how multiple labor statistics complement each other
 * Provide a clean, interpretable dashboard using official government data
 
